@@ -61,12 +61,12 @@ export default function CoreTabsLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-950 text-stone-100 max-w-md mx-auto relative font-sans flex flex-col border-x border-stone-900 shadow-2xl">
+    <div className="w-screen h-screen bg-stone-950 text-stone-100 relative font-sans flex flex-col overflow-hidden">
       {/* Universal Sticky Command Header Panel */}
-      <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-stone-900/90 backdrop-blur border-b border-stone-800">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🛡️</span>
-          <span className="font-black text-sm tracking-widest bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent font-mono">
+      <header className="sticky top-0 z-40 flex items-center justify-between px-3 py-2 bg-stone-900/90 backdrop-blur border-b border-stone-800 flex-shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-base flex-shrink-0">🛡️</span>
+          <span className="font-black text-xs tracking-widest bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent font-mono truncate">
             WORKOUT DEFENSE
           </span>
         </div>
@@ -79,26 +79,26 @@ export default function CoreTabsLayout() {
       </header>
 
       {/* Main Extensible View Switching Tabs Platform */}
-      <main className="flex-1 w-full overflow-y-auto">
-        <Tabs defaultValue="battle" className="w-full flex flex-col h-full">
+      <main className="flex-1 w-full overflow-hidden flex flex-col">
+        <Tabs defaultValue="battle" className="w-full flex flex-col h-full overflow-hidden">
           
           {/* Active Structural Injection Content Frame Segments */}
-          <div className="flex-1">
-            <TabsContent value="training" className="outline-none m-0">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+            <TabsContent value="training" className="outline-none m-0 h-full">
               <WorkoutView />
             </TabsContent>
             
-            <TabsContent value="armory" className="outline-none m-0">
+            <TabsContent value="armory" className="outline-none m-0 h-full">
               <ShopView />
             </TabsContent>
             
-            <TabsContent value="battle" className="outline-none m-0">
+            <TabsContent value="battle" className="outline-none m-0 h-full">
               <GameView />
             </TabsContent>
           </div>
 
           {/* Lower Floating Dashboard Navigation Tab Bar Rail */}
-          <TabsList className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-stone-900/95 backdrop-blur border-t border-stone-800 h-16 p-2 justify-around items-center rounded-none z-50 flex gap-1">
+          <TabsList className="sticky bottom-0 w-full bg-stone-900/95 backdrop-blur border-t border-stone-800 h-16 p-2 justify-around items-center rounded-none z-50 flex gap-1 flex-shrink-0">
             <TabsTrigger 
               value="training" 
               className="flex-1 h-full rounded-xl flex flex-col items-center justify-center gap-0.5 text-stone-500 cursor-pointer data-[state=active]:bg-stone-950 data-[state=active]:text-emerald-400 border border-transparent data-[state=active]:border-stone-800"

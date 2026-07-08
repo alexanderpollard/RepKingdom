@@ -171,14 +171,15 @@ export function stopMusic() {
 // ============================================================================
 
 export class GameEngine {
-  constructor({ unlockedTowers, upgrades }) {
+  constructor({ unlockedTowers, upgrades, coins }) {
     this.unlockedTowers = unlockedTowers || ['slingshot'];
     this.upgrades = upgrades || {};
+    this.persistedCoins = coins || 0;
     this.selectedWeapon = this.unlockedTowers[0] || 'slingshot';
     this.reset();
   }
 
-  get startingGold() { return 50 + (this.upgrades.startingGold || 0) * 10; }
+  get startingGold() { return Math.max(50, this.persistedCoins) + (this.upgrades.startingGold || 0) * 10; }
   get maxLives() { return 20 + (this.upgrades.maxHealth || 0) * 5; }
 
   reset() {

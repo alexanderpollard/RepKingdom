@@ -134,6 +134,7 @@ export function GameView() {
   const { player, updatePlayerState } = useAuth();
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
+  const saveTimeoutRef = useRef(null);
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [towerInfo, setTowerInfo] = useState(null);
   const [selectedWeapon, setSelectedWeapon] = useState("slingshot");
@@ -141,21 +142,46 @@ export function GameView() {
     inGameMoney: 50, lives: 20, wave: 0, phase: "ready", score: 0, kills: 0
   });
 
+  // Auto-save game state when engine state changes
+  const saveGameState = useCallback(() => {
+    if (engineRef.current && player) {
+      const stats = engineRef.current.getStats();
+      const updated = { ...player };
+      updated.coins = stats.inGameMoney;
+      updated.highestWave = Math.max(updated.highestWave || 0, stats.wave);
+      updated.statistics = updated.statistics || {};
+      updated.statistics.totalKills = (updated.statistics.totalKills || 0) + stats.kills;
+      updatePlayerState(updated);
+    }
+  }, [player, updatePlayerState]);
+
   useEffect(() => {
     if (!canvasRef.current) return;
     const ctx = canvasRef.current.getContext("2d");
-    const engine = new GameEngine({ unlockedTowers: player.unlockedTowers, upgrades: player.upgrades });
+    const engine = new GameEngine({ unlockedTowers: player.unlockedTowers, upgrades: player.upgrades, coins: player.coins });
     engineRef.current = engine;
 
+    let frameCount = 0;
     const loop = () => {
       engine.update(0.016);
       engine.render(ctx);
       setStats(engine.getStats());
+      
+      // Auto-save every 60 frames (approximately every 1 second)
+      frameCount++;
+      if (frameCount % 60 === 0) {
+        saveGameState();
+      }
+      
       requestAnimationFrame(loop);
     };
     const raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [player.unlockedTowers, player.upgrades]);
+    return () => {
+      cancelAnimationFrame(raf);
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveGameState();
+    };
+  }, [player.unlockedTowers, player.upgrades, player.coins, saveGameState]);
 
   const handleCanvasClick = (e) => {
     if (!engineRef.current || !canvasRef.current) return;
@@ -175,23 +201,30 @@ export function GameView() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      <canvas 
-        ref={canvasRef} 
-        width={CANVAS_W} 
-        height={CANVAS_H}
-        onClick={handleCanvasClick}
-        className="w-full bg-stone-950 border border-stone-800 rounded-lg cursor-pointer"
-      />
-      <div className="grid grid-cols-4 gap-2 text-xs font-mono">
-        <div className="bg-stone-900 p-2 rounded">💰 {stats.inGameMoney}</div>
-        <div className="bg-stone-900 p-2 rounded">❤️ {stats.lives}</div>
-        <div className="bg-stone-900 p-2 rounded">🌊 Wave {stats.wave}</div>
-        <div className="bg-stone-900 p-2 rounded">⚔️ {stats.kills}</div>
+    <div className="flex flex-col h-full w-full gap-2 p-2 overflow-hidden">
+      <div className="flex-shrink-0">
+        <div className="grid grid-cols-4 gap-1.5 text-xs font-mono">
+          <div className="bg-stone-900 p-1.5 rounded text-center">💰 {stats.inGameMoney}</div>
+          <div className="bg-stone-900 p-1.5 rounded text-center">❤️ {stats.lives}</div>
+          <div className="bg-stone-900 p-1.5 rounded text-center">🌊 {stats.wave}</div>
+          <div className="bg-stone-900 p-1.5 rounded text-center">⚔️ {stats.kills}</div>
+        </div>
       </div>
-      <button onClick={() => engineRef.current?.startWave()} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded font-bold text-sm">
-        {stats.phase === "ready" ? "Start Wave" : "Fighting..."}
-      </button>
+      <div className="flex-1 flex flex-col items-center justify-center min-h-0">
+        <canvas 
+          ref={canvasRef} 
+          width={CANVAS_W} 
+          height={CANVAS_H}
+          onClick={handleCanvasClick}
+          className="max-w-full max-h-full bg-stone-950 border border-stone-800 rounded-lg cursor-pointer"
+          style={{ aspectRatio: `${CANVAS_W}/${CANVAS_H}` }}
+        />
+      </div>
+      <div className="flex-shrink-0">
+        <button onClick={() => engineRef.current?.startWave()} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded font-bold text-sm">
+          {stats.phase === "ready" ? "Start Wave" : "Fighting..."}
+        </button>
+      </div>
     </div>
   );
 }
@@ -202,19 +235,44 @@ export function GameView() {
 
 export function ShopView() {
   const { player, updatePlayerState } = useAuth();
+  
+  const handleUnlock = (tower) => {
+    if (player.coins >= tower.unlockCost && !player.unlockedTowers.includes(tower.id)) {
+      const updated = { ...player };
+      updated.coins -= tower.unlockCost;
+      updated.unlockedTowers = [...updated.unlockedTowers, tower.id];
+      updatePlayerState(updated);
+    }
+  };
+  
   return (
-    <div className="p-4 space-y-3 text-xs font-mono max-h-96 overflow-y-auto">
+    <div className="p-3 space-y-2 text-xs font-mono overflow-y-auto h-full">
       <div><strong>🛍️ Tower Shop</strong></div>
+      <div className="text-emerald-400 mb-2">💰 Available: {player.coins}</div>
       {TOWERS.map(t => (
         <div key={t.id} className="bg-stone-900 p-2 rounded border border-stone-700">
-          <div className="flex justify-between">
-            <span>{t.emoji} {t.name}</span>
-            <span className="text-emerald-400">${t.placeCost}</span>
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="font-bold">{t.emoji} {t.name}</div>
+              <div className="text-stone-400 text-[10px]">{t.desc}</div>
+            </div>
+            <span className="text-emerald-400 text-sm ml-2 flex-shrink-0">${t.placeCost}</span>
           </div>
           {!player.unlockedTowers.includes(t.id) && t.unlockCost > 0 && (
-            <button className="w-full mt-1 bg-amber-600 text-xs p-1 rounded">
-              Unlock: ${t.unlockCost}
+            <button 
+              onClick={() => handleUnlock(t)}
+              disabled={player.coins < t.unlockCost}
+              className={`w-full mt-2 text-xs p-1.5 rounded font-bold transition-all ${
+                player.coins >= t.unlockCost 
+                  ? 'bg-amber-600 hover:bg-amber-500 cursor-pointer' 
+                  : 'bg-stone-800 text-stone-500 cursor-not-allowed'
+              }`}
+            >
+              {player.coins >= t.unlockCost ? `Unlock: $${t.unlockCost}` : `Need: $${t.unlockCost - player.coins} more`}
             </button>
+          )}
+          {player.unlockedTowers.includes(t.id) && (
+            <div className="w-full mt-2 text-center text-emerald-400 text-xs font-bold">✅ Unlocked</div>
           )}
         </div>
       ))}
@@ -230,6 +288,7 @@ export function WorkoutView() {
   const { player, updatePlayerState } = useAuth();
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [reps, setReps] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleLog = () => {
     if (!selectedWorkout || !reps) return;
@@ -241,12 +300,18 @@ export function WorkoutView() {
     next.coins += coins;
     next.workouts[selectedWorkout] = (next.workouts[selectedWorkout] || 0) + repCount;
     updatePlayerState(next);
+    setMessage(`+${coins} coins from ${repCount} reps! ✅`);
     setReps("");
+    setTimeout(() => setMessage(""), 2000);
   };
 
   return (
-    <div className="p-4 space-y-3 text-xs font-mono max-h-96 overflow-y-auto">
-      <div><strong>💪 Log Workouts</strong></div>
+    <div className="p-3 space-y-2 text-xs font-mono overflow-y-auto h-full">
+      <div className="flex justify-between items-center">
+        <strong>💪 Log Workouts</strong>
+        <div className="text-emerald-400">💰 {player.coins}</div>
+      </div>
+      {message && <div className="bg-emerald-950 border border-emerald-500 p-2 rounded text-emerald-400 text-center font-bold">{message}</div>}
       {WORKOUTS.map(w => (
         <button
           key={w.id}
@@ -259,23 +324,23 @@ export function WorkoutView() {
         >
           <div className="flex justify-between">
             <span>{w.emoji} {w.name}</span>
-            <span className="text-emerald-400">${w.moneyPer}/rep</span>
+            <span className="text-emerald-400 text-sm">${w.moneyPer}/rep</span>
           </div>
         </button>
       ))}
       {selectedWorkout && (
-        <div className="space-y-2 border-t border-stone-700 pt-3">
+        <div className="space-y-2 border-t border-stone-700 pt-2 mt-2">
           <input
             type="number"
-            placeholder="Reps"
+            placeholder="Reps completed"
             value={reps}
             onChange={(e) => setReps(e.target.value)}
-            className="w-full p-2 bg-stone-950 border border-stone-700 rounded text-white"
+            className="w-full p-2 bg-stone-950 border border-stone-700 rounded text-white text-sm"
             min="0"
           />
           <button
             onClick={handleLog}
-            className="w-full p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold"
+            className="w-full p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold text-sm"
           >
             Log Workout
           </button>
