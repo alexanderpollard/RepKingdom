@@ -1,0 +1,10 @@
+{
+  "short_name": "WorkoutDef",
+  "name": "Workout Defense: Fitness RPG",
+  "description": "Convert real-world training volume reps into strategic tactical tower defenses.",
+  "start_url": "/",
+  "background_color": "#09090b",
+  "theme_color": "#10b981",
+  "display": "standalone",
+  "orientation": "portrait"
+}

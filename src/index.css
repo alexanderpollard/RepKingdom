@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Theme Design System Matrix Token Parameters */
+    --background: 240 10% 3.9%;      /* Maps cleanly across zinc-950 layouts */
+    --foreground: 0 0% 98%;          /* Clean high-contrast neutral text tracking */
+    
+    --card: 240 6% 10%;              /* Matches deep stone-900 component backdrops */
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 240 6% 10%;
+    --popover-foreground: 0 0% 98%;
+    
+    /* Action Core Palettes - Tied to Workout Progress Curves */
+    --primary: 142 71% 45%;          /* Emerald Green: Rep entries, validation gains */
+    --secondary: 38 92% 50%;         /* Amber Gold: Permanent blueprint shop unlocks */
+    --muted: 240 5% 20%;             /* Stone-800 line item framework parameters */
+    --muted-foreground: 240 5% 65%;
+    
+    --accent: 199 89% 48%;            /* Frost Sky Blue: Freeze magic status effects */
+    --accent-foreground: 240 10% 4%;
+    
+    --destructive: 0 72% 51%;        /* Crimson Red: Structural penalties, base leak damage */
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 240 5% 15%;            /* Standardised baseline border framing lines */
+    --input: 240 5% 12%;
+    --ring: 142 71% 45%;
+    
+    --radius: 0.75rem;                /* Rounded container boundary radius limits */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-none transition-colors duration-100;
+    -webkit-tap-highlight-color: transparent; /* Dispels mobile browser ghost tap flashes */
+  }
+  body {
+    @apply bg-stone-950 text-foreground antialiased font-sans overflow-x-hidden;
+    overscroll-behavior-y: contain; /* Prevents mobile rubberband pull-to-refresh canvas breaks */
+  }
+  
+  /* Standardized Keypad Input Sanitizations */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+@layer utilities {
+  /* Scrollbar removal macro utility */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
