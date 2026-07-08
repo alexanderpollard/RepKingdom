@@ -93,58 +93,30 @@ export function AuthProvider({ children }) {
   // Core system bootstrapping lifecycle
   useEffect(() => {
     async function initializeSystemMatrix() {
-      // 1. Fetch public application rules
       try {
-        setIsLoadingPublicSettings(true);
-        setAuthError(null);
+        // For demo mode: skip API calls and allow direct app access
+        setIsLoadingPublicSettings(false);
+        setIsLoadingAuth(false);
         
-        // Dynamic fetch layout targeting Base44 framework paths
-        const res = await fetch(`/api/apps/public/prod/public-settings/by-id/${appParams.appId}`, {
-          headers: { 'X-App-Id': appParams.appId }
-        });
-
-        if (!res.ok) {
-          if (res.status === 403) {
-            setAuthError({ type: 'user_not_registered', message: 'User profile outside app access bounds.' });
-          } else {
-            throw new Error('Public settings mapping failed.');
-          }
-        } else {
-          const publicSettings = await res.json();
-          setAppPublicSettings(publicSettings);
-
-          // 2. Resolve target session identity tokens
-          if (appParams.token) {
-            try {
-              setIsLoadingAuth(true);
-              const currentUser = await base44.auth.me();
-              setUser(currentUser);
-              setIsAuthenticated(true);
-            } catch (err) {
-              if (err.status === 401 || err.status === 403) {
-                setAuthError({ type: 'auth_required', message: 'Authentication required' });
-              }
-            } finally {
-              setIsLoadingAuth(false);
-            }
-          } else {
-            setIsLoadingAuth(false);
-          }
+        // Auto-login in demo mode
+        setIsAuthenticated(true);
+        setUser({ id: 'demo-user', email: 'demo@workout-defense.local' });
+        
+        // 3. Mount disk-cached progress arrays safely through the normalization adapter
+        try {
+          const rawSave = localStorage.getItem(CACHE_KEY);
+          setPlayer(normalize(rawSave ? JSON.parse(rawSave) : null));
+        } catch {
+          setPlayer(defaultSave());
         }
       } catch (globalErr) {
         console.error('System bootstrap structural fault:', globalErr);
-        setAuthError({ type: 'unknown', message: globalErr.message });
-      } finally {
+        // Still initialize even on error
         setIsLoadingPublicSettings(false);
+        setIsLoadingAuth(false);
+        setIsAuthenticated(true);
+      } finally {
         setAuthChecked(true);
-      }
-
-      // 3. Mount disk-cached progress arrays safely through the normalization adapter
-      try {
-        const rawSave = localStorage.getItem(CACHE_KEY);
-        setPlayer(normalize(rawSave ? JSON.parse(rawSave) : null));
-      } catch {
-        setPlayer(defaultSave());
       }
     }
 
@@ -190,7 +162,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user, player, isAuthenticated, isLoadingAuth, isLoadingPublicSettings,
       authError, appPublicSettings, authChecked, updatePlayerState, resetAllData,
-      logout, navigateToLogin
+      logout, navigateToLogin, base44
     }}>
       {children}
     </AuthContext.Provider>
